@@ -194,22 +194,22 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 
 		// NOTE: Verificamos si existe una "COMUNICACIÓN TERCERIZACIÓN CON MENSAJE"
 		casper.waitFor(function check() {
-		    return this.evaluate(function(pseIdentity) {
-		    	// NOTE: Consultando todas las altas existentes
-		    	var elements = document.querySelectorAll('form#frmBajaCert div#dojox_grid__View_1 div.dojoxGridContent div.dojoxGridRow');
+	    return this.evaluate(function(pseIdentity) {
+	    	// NOTE: Consultando todas las altas existentes
+	    	var elements = document.querySelectorAll('form#frmBajaCert div#dojox_grid__View_1 div.dojoxGridContent div.dojoxGridRow');
 
-		    	// NOTE: Verificamos si en el resultado de la consulta
-		    	// existe el pse que estamos intentando registrar
-				for (var i = elements.length - 1; i >= 0; i--) {
-					var currentElement = elements[i].querySelector('table.dojoxGridRowTable tbody tr td');
+	    	// NOTE: Verificamos si en el resultado de la consulta
+	    	// existe el pse que estamos intentando registrar
+			for (var i = elements.length - 1; i >= 0; i--) {
+				var currentElement = elements[i].querySelector('table.dojoxGridRowTable tbody tr td');
 
-					if (currentElement.textContent === pseIdentity) {
-						return true;
-					}
+				if (currentElement.textContent === pseIdentity) {
+					return true;
 				}
+			}
 
-		    	return false;
-		    }, PSE_IDENTITY);
+	    	return false;
+	    }, PSE_IDENTITY);
 		}, function then() {// step to execute when check() is ok
 			this.emit(CAPTURE_EVENT_NAME, 'ExisteRegistroPSE');
 
@@ -255,38 +255,36 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 		// NOTE: Esperamos el resultado de la búsqueda ralizada,
 		// para proceder a seleccionar en función al resultado
 		casper.waitFor(function check() {
-		    return this.evaluate(function() {
-		    	var content = document.querySelector('form#frmRegistroCertLista table#tabArchLista div#gridConsulta2 div#dojox_grid__View_3');
+	    return this.evaluate(function() {
+	    	var content = document.querySelector('form#frmRegistroCertLista table#tabArchLista div#gridConsulta2 div#dojox_grid__View_3');
 
-		    	var grid = content.querySelector('.dojoxGridContent');
+	    	var grid = content.querySelector('.dojoxGridContent');
 
-		    	var rows = grid.querySelectorAll('.dojoxGridRow');
+	    	var rows = grid.querySelectorAll('.dojoxGridRow');
 
-		    	return rows.length === 1 ? true : false;
-		    });
+	    	return rows.length === 1 ? true : false;
+	    });
 		}, function then() {// step to execute when check() is ok
-		    this.evaluate(function(authorizationDate) {
-		    	// NOTE: marcar el pse buscado
-		    	var content = document.querySelector('form#frmRegistroCertLista table#tabArchLista div#gridConsulta2 div#dojox_grid__View_3');
+	    this.evaluate(function(authorizationDate) {
+	    	// NOTE: marcar el pse buscado
+	    	var content = document.querySelector('form#frmRegistroCertLista table#tabArchLista div#gridConsulta2 div#dojox_grid__View_3');
 
-		    	var grid = content.querySelector('.dojoxGridContent');
+	    	var grid = content.querySelector('.dojoxGridContent');
 
-		    	var rows = grid.querySelectorAll('.dojoxGridRow');
+	    	var rows = grid.querySelectorAll('.dojoxGridRow');
 
-		    	var element = rows[0].querySelector('.dojoxGridCell');
+	    	var element = rows[0].querySelector('.dojoxGridCell');
 
-		    	element.click();
+	    	element.click();
 
-		    	document.getElementById('btnNuevoCert2').click();
+	    	document.getElementById('btnNuevoCert2').click();
 
-		    	document.getElementById('txtFechaIni').value = authorizationDate;
+	    	document.getElementById('txtFechaIni').value = authorizationDate;
 
-				// TODO: script para "guardar" autorización
-		    }, AUTHORIZATION_DATE);
-
-		    this.wait(6000);
-		    
-		    this.emit(CAPTURE_EVENT_NAME, 'ExisteListaPse');
+			// TODO: script para "guardar" autorización
+	    }, AUTHORIZATION_DATE);
+	    
+	    this.emit(CAPTURE_EVENT_NAME, 'ExisteListaPse');
 
 			this.emit(ECHO_EVENT_NAME, 'PSE seleccionado correctamente.');
 		}, function timeout() {// step to execute if check has failed

@@ -37,3 +37,7 @@ child.stdout.on('data', (data) => {
 child.stderr.on('data', (data) => {
   console.error(`child stderr:\n${data}`);
 });
+
+child.on('close', function(code) {
+	console.log('Proceso cerrado (%s).', code);
+});
