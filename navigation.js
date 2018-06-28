@@ -1,43 +1,26 @@
-var path = require('path');
+const Driver = require('./Driver.js');
 
-// Require spawn from the child process module
-var spawn = require('child_process').spawn;
+const driver = new Driver(
+  'JOSE MARTIN CAMPOS QUISPE',
+  '10460600371',
+  'EASY1234',
+  'EASY1234'
+);
 
-var IDENTITY = '10460600371',
-	USERNAME = 'EASY1234',
-	PASSWORD = 'EASY1234';
+driver.toSpawn();
 
-var PSE_IDENTITY = '20504561292',
-	AUTHORIZATION_DATE = '30/06/2018';
+driver.on('data', (mssg) => {
+  console.log(`STDOUT: \n ${mssg.toString()}`);
+})
 
-var CASPER_SCRIPT = path.join(__dirname, 'external/tercerizacion.js');
+driver.on('error', (mssg) => {
+  console.log(`STDERR: \n ${mssg.toString()}`);
+})
 
-var args = [
-	CASPER_SCRIPT,
-	IDENTITY,
-	USERNAME,
-	PASSWORD,
-	PSE_IDENTITY,
-	AUTHORIZATION_DATE
-];
+driver.on('success', function(message) {
+  console.log(message.toString());
+})
 
-// Run node with the child.js file as an argument
-var child = spawn('casperjs', args);
-
-process.stderr.setMaxListeners(0);
-
-child.stdout.setEncoding('utf8');
-
-child.stderr.setEncoding('utf8');
-
-child.stdout.on('data', (data) => {
-  console.log(`child stdout:\n${data}`);
-});
-
-child.stderr.on('data', (data) => {
-  console.error(`child stderr:\n${data}`);
-});
-
-child.on('close', function(code) {
-	console.log('Proceso cerrado (%s).', code);
-});
+driver.on('failure', function(message) {
+  console.log(message.toString());
+})
