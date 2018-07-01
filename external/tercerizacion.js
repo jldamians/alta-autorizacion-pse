@@ -5,10 +5,6 @@
 var utils = require('utils'),
     system = require('system');
 
-var scriptHasError = false,
-    screenshotsCounter = 0,
-    PSEInformationAlreadyRegistered = null;
-
 var casper = require('casper').create({
 	colorizerType: 'Dummy', // prevent colorize text output
 	stepTimeout: 40000, // 40 seconds timeout for each step
@@ -27,10 +23,18 @@ var casper = require('casper').create({
 });
 
 // NOTE: Información global
+var scriptHasError = false,
+    screenshotsCounter = 0,
+    PSEInformationAlreadyRegistered = null;
+
 var ERROR_EXIT_CODE = 1,
+    DANGER_ERROR_CODE = 1,
+    WARNING_ERROR_CODE = 0,
   	ECHO_EVENT_NAME = 'sunat.echo',
-  	ERROR_EVENT_NAME = 'sunat.error',
+    ERROR_EVENT_NAME = 'sunat.error',
   	CAPTURE_EVENT_NAME = 'sunat.capture',
+    DANGER_ERROR_EVENT_NAME = 'sunat.error.danger',
+    WARNING_ERROR_EVENT_NAME = 'sunat.error.warning',
     WEB_ADDRESS = 'https://e-menu.sunat.gob.pe/cl-ti-itmenu/MenuInternet.htm';
 
 // NOTE: Parámetros envidos por medio de la linea de comandos
@@ -55,11 +59,23 @@ casper.on(CAPTURE_EVENT_NAME, function(filename) {
 });
 
 // NOTE: Evento para imprimir mensaje de error
-casper.on(ERROR_EVENT_NAME, function(message) {
-	system.stderr.writeLine(message);
+casper.on(ERROR_EVENT_NAME, function(code, message) {
+	system.stderr.writeLine(JSON.stringify({
+    code: code,
+    message: message
+  }));
 
 	this.exit(ERROR_EXIT_CODE);
 });
+
+casper.on(DANGER_ERROR_EVENT_NAME, function(message) {
+  this.emit(ERROR_EVENT_NAME, DANGER_ERROR_CODE, message);
+});
+
+casper.on(WARNING_ERROR_EVENT_NAME, function(message) {
+  this.emit(ERROR_EVENT_NAME, WARNING_ERROR_CODE, message);
+});
+
 
 // NOTE: Acceder a la página de "Trámites y Consultas" de la SUNAT
 casper.start(WEB_ADDRESS, function() {
@@ -71,7 +87,7 @@ casper.start(WEB_ADDRESS, function() {
 	} else {
     this.emit(CAPTURE_EVENT_NAME, 'BotonIngresoPorRucNoExiste');
 
-    this.emit(ERROR_EVENT_NAME, 'El botón para realizar la autenticación al portal SOL por RUC no existe (#btnPorRuc)');
+    this.emit(WARNING_ERROR_EVENT_NAME, 'El botón para realizar la autenticación al portal SOL por RUC no existe (#btnPorRuc)');
 	}
 });
 
@@ -97,7 +113,7 @@ casper.waitFor(function() {
 }, function() {
 	this.emit(CAPTURE_EVENT_NAME, 'FormularioAutenticacionPorRucIncorrecto');
 
-	this.emit(ERROR_EVENT_NAME, 'El formulario de autenticación por RUC no ha cargado correctamente');
+	this.emit(WARNING_ERROR_EVENT_NAME, 'El formulario de autenticación por RUC no ha cargado correctamente');
 }, 10000);
 
 // NOTE: Verificamos si existe la sección de modales informativos
@@ -142,7 +158,7 @@ casper.waitForSelector('iframe#ifrVCE', function() {
 
 	this.emit(CAPTURE_EVENT_NAME, 'ErrorAutenticacionPortalSOL');
 
-	this.emit(ERROR_EVENT_NAME, 'Errores en la autenticación al portal SOL');
+	this.emit(DANGER_ERROR_EVENT_NAME, 'Errores en la autenticación al portal SOL');
 }, 10000);
 
 // NOTE: Click en el menú "Altas/Bajas de PSE"
@@ -169,13 +185,13 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 
 			this.emit(CAPTURE_EVENT_NAME, 'AccionNoPermitida');
 
-			this.emit(ERROR_EVENT_NAME, message.textContent);
+			this.emit(DANGER_ERROR_EVENT_NAME, message.textContent);
 		} else {
 			// NOTE: Si no existen los elementos "body.tundra div.principal" y "body div.cuerpo",
 			// significa que el área de trabajo no ha cargado correctamente
 			this.emit(CAPTURE_EVENT_NAME, 'AreaTrabajoNoCarga');
 
-			this.emit(ERROR_EVENT_NAME, 'La sección de Altas de Autorización de PSE no ha cargado');
+			this.emit(WARNING_ERROR_EVENT_NAME, 'La sección de Altas de Autorización de PSE no ha cargado');
 		}
 
 		// NOTE: Verificamos si existe una "COMUNICACIÓN TERCERIZACIÓN CON MENSAJE"
@@ -223,7 +239,7 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 		}, function then() {// step to execute when check() is ok
 			this.emit(CAPTURE_EVENT_NAME, 'ExisteAltaAutorizacion');
 
-			this.emit(ERROR_EVENT_NAME, 'Hemos identificado una Alta de Autorización de PSE (Inicio autorización ' + PSEInformationAlreadyRegistered.authorization + ')');
+			this.emit(DANGER_ERROR_EVENT_NAME, 'Hemos identificado una Alta de Autorización de PSE (Inicio autorización ' + PSEInformationAlreadyRegistered.authorization + ')');
 		}, function timeout() {
 			this.emit(ECHO_EVENT_NAME, 'NO hemos identificado una Alta de Autorización de PSE');
 
@@ -242,8 +258,8 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 		}, function timeout() { // step to execute if check has failed
       this.emit(CAPTURE_EVENT_NAME, 'FormularioRegistroAltaIncorrecto');
 
-			this.emit(ECHO_EVENT_NAME, 'Formulario de registro de Alta de autorización de PSE no ha cargado');
-		}, 20000);
+			this.emit(WARNING_ERROR_EVENT_NAME, 'Formulario de registro de Alta de autorización de PSE no ha cargado');
+		}, 15000);
 
 		// NOTE: Esperamos un tiempo, a que se le asigne una función al evento "onclick"
 		// del botón "btnNuevoLista", el cual permite realizar la búsqueda del pse
@@ -261,8 +277,8 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 		}, function timeout() {// step to execute if check has failed
       this.emit(CAPTURE_EVENT_NAME, 'FormularioBusquedaPSEIncorrecto');
 
-			this.emit(ECHO_EVENT_NAME, 'Formulario de búsqueda Lista de PSE activos no ha cargado');
-		}, 20000);
+			this.emit(WARNING_ERROR_EVENT_NAME, 'Formulario de búsqueda Lista de PSE activos no ha cargado');
+		}, 15000);
 
 		// NOTE: Esperamos el resultado de la búsqueda ralizada,
 		// para proceder a seleccionar en función al resultado
@@ -300,13 +316,13 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 		}, function timeout() {// step to execute if check has failed
 			this.emit(CAPTURE_EVENT_NAME, 'PSEConsultadoNoEncontrado');
 
-			this.emit(ECHO_EVENT_NAME, 'El PSE consultado no figura en los registros de la SUNAT');
+			this.emit(DANGER_ERROR_EVENT_NAME, 'El PSE consultado no figura en los registros de la SUNAT');
 		}, 20000);
 	});
 }, function() {
 	this.emit(CAPTURE_EVENT_NAME, 'ErrorCargarAreaTrabajo');
 
-	this.emit(ERROR_EVENT_NAME, 'Error al cargar el área de trabajo.');
+	this.emit(WARNING_ERROR_EVENT_NAME, 'Error al cargar el área de trabajo.');
 }, 10000);
 
 casper.run(function() {
