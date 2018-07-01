@@ -13,12 +13,12 @@ var casper = require('casper').create({
 	onStepTimeout: function(timeout, step) {
 		scriptHasError = true;
 
-    this.emit(ERROR_EVENT_NAME, 'El paso (' + step + ') está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
+    this.emit(WARNING_ERROR_EVENT_NAME, 'El paso (' + step + ') está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
 	},
 	onTimeout: function(timeout) {
 		if (scriptHasError) { return; }
 
-    this.emit(ERROR_EVENT_NAME, 'La ejecución está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
+    this.emit(WARNING_ERROR_EVENT_NAME, 'La ejecución está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
 	}
 });
 
