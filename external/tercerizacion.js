@@ -1,64 +1,51 @@
 'use strict';
 
 /* OBSERVATION: THIS IS A CASPERJS SCRIPT, NOT A NODEJS SCRIPT */
-var system = require('system'),
-    utils = require('utils');
 
-var scriptHasError;
+var utils = require('utils'),
+    system = require('system');
+
+var scriptHasError = false,
+    screenshotsCounter = 0,
+    PSEInformationAlreadyRegistered = null;
 
 var casper = require('casper').create({
 	colorizerType: 'Dummy', // prevent colorize text output
-	stepTimeout: 180000, // 1 minute timeout for each step
-	timeout: 480000, // 8 minutes timeout for script execution
+	stepTimeout: 40000, // 40 seconds timeout for each step
+	timeout: 120000, // 2 minutes timeout for script execution
 	viewportSize: { width: 800, height: 600 },
-	onStepTimeout: function(timeout, stepNum) {
+	onStepTimeout: function(timeout, step) {
 		scriptHasError = true;
 
-		logError([
-			'The step (' + stepNum + ') was taking too long (> ' + timeout + 'ms)..',
-			'the script was stopped!'
-		].join(' '));
-
-		this.exit(1);
+    this.emit(ERROR_EVENT_NAME, 'El paso (' + step + ') está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
 	},
 	onTimeout: function(timeout) {
-		if (scriptHasError) {
-			return;
-		}
+		if (scriptHasError) { return; }
 
-		logError([
-			'The script execution was taking too long (> ' + timeout + 'ms)..',
-			'the script was stopped!'
-		].join(' '));
-
-		this.exit(1);
+    this.emit(ERROR_EVENT_NAME, 'La ejecución está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
 	}
 });
 
-function logError(msg) {
-  system.stderr.writeLine(msg);
-}
-
-var screenshotsCounter = 0;
-
-var WEB_ADDRESS = 'https://e-menu.sunat.gob.pe/cl-ti-itmenu/MenuInternet.htm';
-
+// NOTE: Información global
 var ERROR_EXIT_CODE = 1,
   	ECHO_EVENT_NAME = 'sunat.echo',
   	ERROR_EVENT_NAME = 'sunat.error',
-  	CAPTURE_EVENT_NAME = 'sunat.capture';
+  	CAPTURE_EVENT_NAME = 'sunat.capture',
+    WEB_ADDRESS = 'https://e-menu.sunat.gob.pe/cl-ti-itmenu/MenuInternet.htm';
 
+// NOTE: Parámetros envidos por medio de la linea de comandos
 var IDENTITY = casper.cli.get(0),
   	USERNAME = casper.cli.get(1),
   	PASSWORD = casper.cli.get(2),
   	PSE_IDENTITY = casper.cli.get(3),
   	AUTHORIZATION_DATE = casper.cli.get(4);
 
+// NOTE: Evento para imprimir mensaje informativo
 casper.on(ECHO_EVENT_NAME, function(message) {
-	//this.echo(message);
-  system.stdout.writeLine(message);
+  system.stdout.writeLine(message); //this.echo(message);
 });
 
+// NOTE: Evento para capturar pantalla
 casper.on(CAPTURE_EVENT_NAME, function(filename) {
 	screenshotsCounter = (
     screenshotsCounter + 1
@@ -67,6 +54,7 @@ casper.on(CAPTURE_EVENT_NAME, function(filename) {
 	this.capture('imgs/' + IDENTITY + '/' + screenshotsCounter + '.-' + filename + '.png');
 });
 
+// NOTE: Evento para imprimir mensaje de error
 casper.on(ERROR_EVENT_NAME, function(message) {
 	system.stderr.writeLine(message);
 
@@ -107,9 +95,9 @@ casper.waitFor(function() {
 		document.getElementById('btnAceptar').click();
 	}, IDENTITY, USERNAME, PASSWORD);
 }, function() {
-	this.emit(CAPTURE_EVENT_NAME, 'FormularioIngresoPorRucIncorrecto');
+	this.emit(CAPTURE_EVENT_NAME, 'FormularioAutenticacionPorRucIncorrecto');
 
-	this.emit(ERROR_EVENT_NAME, 'El formulario de autenticación al portal SOL por RUC no ha cargado correctamente');
+	this.emit(ERROR_EVENT_NAME, 'El formulario de autenticación por RUC no ha cargado correctamente');
 }, 10000);
 
 // NOTE: Verificamos si existe la sección de modales informativos
@@ -154,7 +142,7 @@ casper.waitForSelector('iframe#ifrVCE', function() {
 
 	this.emit(CAPTURE_EVENT_NAME, 'ErrorAutenticacionPortalSOL');
 
-	this.emit(ERROR_EVENT_NAME, 'Intento de autenticación al portal SOL fallida');
+	this.emit(ERROR_EVENT_NAME, 'Errores en la autenticación al portal SOL');
 }, 10000);
 
 // NOTE: Click en el menú "Altas/Bajas de PSE"
@@ -169,9 +157,9 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 		if (this.exists('body.tundra div.principal')) {
 			// NOTE: Si existe "body.tundra div.principal" el usuario SOL puede
 			// realizar el registro de "COMUNICACION TERCERIZACIÓN CON PSE"
-			this.emit(ECHO_EVENT_NAME, 'La sección "Altas/Bajas de PSE" ha cargado correctamente.');
+			this.emit(ECHO_EVENT_NAME, 'La sección de Altas de Autorización de PSE ha cargado');
 
-			this.emit(CAPTURE_EVENT_NAME, 'AreaTrabajoCargadaCorrectamente');
+			//this.emit(CAPTURE_EVENT_NAME, 'AreaTrabajoCargadaCorrectamente');
 		} else if (this.exists('body div.cuerpo')) {
 			// NOTE: Si existe "body div.cuerpo" el usuario SOL no puede
 			// realizar el registro de "COMUNICACION TERCERIZACIÓN CON PSE"
@@ -187,33 +175,57 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 			// significa que el área de trabajo no ha cargado correctamente
 			this.emit(CAPTURE_EVENT_NAME, 'AreaTrabajoNoCarga');
 
-			this.emit(ERROR_EVENT_NAME, 'La sección "Altas/Bajas de PSE" no ha cargado.');
+			this.emit(ERROR_EVENT_NAME, 'La sección de Altas de Autorización de PSE no ha cargado');
 		}
 
 		// NOTE: Verificamos si existe una "COMUNICACIÓN TERCERIZACIÓN CON MENSAJE"
 		casper.waitFor(function check() {
-	    return this.evaluate(function(pseIdentity) {
+	    var PSERegistrationInformation = this.evaluate(function(argPseIdentity) {
+        var PSENameElement,
+            PSEIdentityElement,
+            PSEAuthorizationElement;
+
 	    	// NOTE: Consultando todas las altas existentes
 	    	var elements = document.querySelectorAll('form#frmBajaCert div#dojox_grid__View_1 div.dojoxGridContent div.dojoxGridRow');
 
 	    	// NOTE: Verificamos si en el resultado de la consulta
 	    	// existe el pse que estamos intentando registrar
   			for (var i = elements.length - 1; i >= 0; i--) {
-  				var currentElement = elements[i].querySelector('table.dojoxGridRowTable tbody tr td');
+          PSENameElement = (
+            elements[i].querySelector("td[idx='2']").textContent.toString().trim()
+          );
 
-  				if (currentElement.textContent == pseIdentity) {
-  					return true;
+          PSEIdentityElement = (
+            elements[i].querySelector("td[idx='0']").textContent.toString().trim()
+          );
+
+          PSEAuthorizationElement = (
+            elements[i].querySelector("td[idx='3']").textContent.toString().trim()
+          );
+
+          // NOTE: Verificamos si el RUC del PSE que intentamos registrar,
+          // es igual al RUC del PSE que se encuentra registrado
+  				if (PSEIdentityElement == argPseIdentity) {
+            return {
+              name: PSENameElement,
+              identity: PSEIdentityElement,
+              authorization: PSEAuthorizationElement
+            };
   				}
   			}
 
-	    	return false;
+	    	return null;
 	    }, PSE_IDENTITY);
+
+      PSEInformationAlreadyRegistered = PSERegistrationInformation;
+
+      return PSERegistrationInformation == null ? false : true;
 		}, function then() {// step to execute when check() is ok
 			this.emit(CAPTURE_EVENT_NAME, 'ExisteAltaAutorizacion');
 
-			this.emit(ERROR_EVENT_NAME, 'Hemos identificado una Alta de Autorización para el PSE');
+			this.emit(ERROR_EVENT_NAME, 'Hemos identificado una Alta de Autorización de PSE (Inicio autorización ' + PSEInformationAlreadyRegistered.authorization + ')');
 		}, function timeout() {
-			this.emit(ECHO_EVENT_NAME, 'NO hemos identificado una Alta de Autorización para el PSE');
+			this.emit(ECHO_EVENT_NAME, 'NO hemos identificado una Alta de Autorización de PSE');
 
 			// NOTE: Si no existe registro de "COMUNICACIÓN TERCERIZACIÓN CON PSE",
 			// hacemos Click botón "Alta Servicio", para registrar un PSE
@@ -228,7 +240,9 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 			// NOTE: Click botón "..", para buscar PSE
 			this.click('#btnListarPSE2');
 		}, function timeout() { // step to execute if check has failed
-			this.emit(ECHO_EVENT_NAME, 'No se encontro el formulario "Alta de autorización de PSE".');
+      this.emit(CAPTURE_EVENT_NAME, 'FormularioRegistroAltaIncorrecto');
+
+			this.emit(ECHO_EVENT_NAME, 'Formulario de registro de Alta de autorización de PSE no ha cargado');
 		}, 20000);
 
 		// NOTE: Esperamos un tiempo, a que se le asigne una función al evento "onclick"
@@ -245,7 +259,9 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 				document.getElementById('btnNuevoLista').click();
 			}, PSE_IDENTITY)
 		}, function timeout() {// step to execute if check has failed
-			this.emit(ECHO_EVENT_NAME, 'No se encontro el formulario "Lista de PSE activos".');
+      this.emit(CAPTURE_EVENT_NAME, 'FormularioBusquedaPSEIncorrecto');
+
+			this.emit(ECHO_EVENT_NAME, 'Formulario de búsqueda Lista de PSE activos no ha cargado');
 		}, 20000);
 
 		// NOTE: Esperamos el resultado de la búsqueda ralizada,
@@ -280,13 +296,11 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 			// TODO: script para "guardar" autorización
 	    }, AUTHORIZATION_DATE);
 
-	    this.emit(CAPTURE_EVENT_NAME, 'ExisteListaPse');
-
-			this.emit(ECHO_EVENT_NAME, 'PSE seleccionado correctamente.');
+			this.emit(ECHO_EVENT_NAME, 'El PSE consultado ha sido encontrado y seleccionado');
 		}, function timeout() {// step to execute if check has failed
-			this.emit(CAPTURE_EVENT_NAME, 'NoExisteListaPse');
+			this.emit(CAPTURE_EVENT_NAME, 'PSEConsultadoNoEncontrado');
 
-			this.emit(ECHO_EVENT_NAME, 'Error al realizar la búsqueda del PSE.');
+			this.emit(ECHO_EVENT_NAME, 'El PSE consultado no figura en los registros de la SUNAT');
 		}, 20000);
 	});
 }, function() {
@@ -296,7 +310,5 @@ casper.waitForSelector('iframe#iframeApplication', function() {
 }, 10000);
 
 casper.run(function() {
-	this.echo('Proceso concluido: ' + Date.now());
-
 	this.exit();
 });
