@@ -1,23 +1,66 @@
+const Excel = require('exceljs');
+
 const Driver = require('./Driver.js');
 
-const driver = new Driver(
-  'JOSE MARTIN CAMPOS QUISPE',
-  '10460600371',
-  'EASY1234',
-  'EASY1234',
-  '30/07/2018'
-);
+const workbook = new Excel.Workbook();
 
-driver.toSpawn();
+const filename = 'C:\\Users\\josel\\Desktop\\easy-invoices.csv';
 
-driver.on('data', (mssg) => {
-  console.log(`DATA: \n ${mssg.toString()}`);
-})
+const csv = workbook.csv.readFile(filename);
 
-driver.on('error', (mssg) => {
-  console.log(`ERROR: \n ${mssg.toString()}`);
-})
+const ROWS_STRUCTURE = [
+  '.',
+  'name',
+  'paternal',
+  'maternal',
+  'address',
+  'ubigeo',
+  'phone',
+  'dni',
+  'ruc',
+  'email',
+  'username',
+  'password',
+  'billing',
+  'accounting'
+];
 
-driver.on('end', (mssg) => {
-  console.log(`END: \n ${mssg.toString()}`);
-})
+csv.then(function(worksheet) {
+  var information = [];
+
+  worksheet.eachRow(function(row, rowNumber) {
+    var current = {};
+
+    if (rowNumber >= 2 && rowNumber <= 5) {
+      row.eachCell(function(cell, colNumber) {
+        var property = ROWS_STRUCTURE[colNumber];
+
+        current[property] = cell.value;
+      });
+
+      information.push(new Driver(
+        current.name,
+        current.ruc,
+        current.username,
+        current.password,
+        '2018-07-15'
+      ));
+    }
+  });
+
+  information.forEach(function(driver) {
+    driver.toSpawn();
+
+    driver.on('data', (mssg) => {
+      console.log(`DATA (${driver.identity}): \n ${mssg.toString()}`);
+    })
+
+    driver.on('error', (mssg) => {
+      console.log(`ERROR (${driver.identity}): \n ${mssg.toString()}`);
+    })
+
+    driver.on('end', (mssg) => {
+      console.log(`END (${driver.identity}): \n ${mssg.toString()}`);
+    })
+  });
+});
