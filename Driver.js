@@ -5,12 +5,13 @@ const path = require('path'),
       events = require('events'),
       cp = require('child_process');
 
-function Driver(fullname, identity, username, password) {
+function Driver(fullname, identity, username, password, authorization) {
   let _args = {
     fullname: fullname,
     identity: identity,
     username: username,
-    password: password
+    password: password,
+    authorization: authorization
   }
 
   Object.defineProperty(this, 'fullname', {
@@ -32,6 +33,11 @@ function Driver(fullname, identity, username, password) {
     get: () => { return _args.password },
     set: (value) => { _args.password = value }
   })
+
+  Object.defineProperty(this, 'authorization', {
+    get: () => { return _args.authorization },
+    set: (value) => { _args.authorization = value }
+  })
 }
 
 util.inherits(Driver, events.EventEmitter);
@@ -43,7 +49,7 @@ Driver.prototype.toSpawn =  function(command='casperjs') {
     this.username,
     this.password,
     '20504561292',
-    '30/06/2018'
+    this.authorization
   ];
 
   const child = cp.spawn(command, args);
@@ -72,16 +78,16 @@ Driver.prototype.toSpawn =  function(command='casperjs') {
   // NOTE: When process ends
   child.on('exit', (code) => {
     if (code === this.SUCCESS_CODE) {
-      this.emit('success', 'Proceso concluido (éxito)!');
-    } else {
-      this.emit('failure', 'Proceso concluido (facaso)!');
-    }
+      this.emit('end', 'Inicio autorización ' + this.authorization);
+    } /*else {
+      this.emit('error', 'Proceso concluido (facaso)!');
+    }*/
   });
 
-  /*child.on('error', (code) => {
+  child.on('error', (err) => {
     // NOTE: When error occurs
-    this.emit('end', 'was error');
-  });*/
+    this.emit('error', err.message);
+  });
 }
 
 Driver.prototype.SUCCESS_CODE = 0;
