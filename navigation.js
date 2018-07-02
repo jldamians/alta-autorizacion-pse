@@ -4,23 +4,20 @@ const driver = new Driver(
   'JOSE MARTIN CAMPOS QUISPE',
   '10460600371',
   'EASY1234',
-  'EASY1234'
+  'EASY1234',
+  '30/07/2018'
 );
 
 driver.toSpawn();
 
 driver.on('data', (mssg) => {
-  console.log(`STDOUT: \n ${mssg.toString()}`);
+  console.log(`DATA: \n ${mssg.toString()}`);
 })
 
 driver.on('error', (mssg) => {
-  console.log(`STDERR: \n ${mssg.toString()}`);
+  console.log(`ERROR: \n ${mssg.toString()}`);
 })
 
-driver.on('success', function(message) {
-  console.log(message.toString());
-})
-
-driver.on('failure', function(message) {
-  console.log(message.toString());
+driver.on('end', (mssg) => {
+  console.log(`END: \n ${mssg.toString()}`);
 })

@@ -151,7 +151,7 @@ casper.waitForSelector('iframe#ifrVCE', function() {
 	});
 }, function() {
 	// NOTE: Si no existe la sección de modales informativos,
-	// asuminos que los datos de acceso son incorrectos. Esto
+	// asumimos que los datos de acceso son incorrectos. Esto
 	// porque al haber algún error de logeo, nos redirecciona.
 
 	//this.echo('url -> ' + this.getCurrentUrl());
