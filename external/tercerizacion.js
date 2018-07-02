@@ -7,16 +7,20 @@ var utils = require('utils'),
 
 var casper = require('casper').create({
 	colorizerType: 'Dummy', // prevent colorize text output
-	stepTimeout: 40000, // 40 seconds timeout for each step
+	stepTimeout: 60000, // 40 seconds timeout for each step
 	timeout: 120000, // 2 minutes timeout for script execution
 	viewportSize: { width: 800, height: 600 },
 	onStepTimeout: function(timeout, step) {
 		scriptHasError = true;
 
+    this.emit(CAPTURE_EVENT_NAME, 'timeoutStep');
+
     this.emit(WARNING_ERROR_EVENT_NAME, 'El paso (' + step + ') está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
 	},
 	onTimeout: function(timeout) {
 		if (scriptHasError) { return; }
+
+    this.emit(CAPTURE_EVENT_NAME, 'timeoutProcess');
 
     this.emit(WARNING_ERROR_EVENT_NAME, 'La ejecución está tomando demasiado tiempo (> ' + (timeout / 1000) + ' segundos)');
 	}

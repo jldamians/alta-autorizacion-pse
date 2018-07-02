@@ -1,10 +1,8 @@
 'use strict';
 
-const path = require('path'),
-      util = require('util'),
-      moment = require('moment'),
-      events = require('events'),
-      cp = require('child_process');
+const moment = require('moment');
+
+const Bot = require('./index');
 
 function Driver(fullname, identity, username, password, authorization) {
   let _args = {
@@ -12,7 +10,8 @@ function Driver(fullname, identity, username, password, authorization) {
     identity: identity,
     username: username,
     password: password,
-    authorization: authorization
+    authorization: authorization,
+    pse: '20504561292'
   }
 
   Object.defineProperty(this, 'fullname', {
@@ -39,62 +38,41 @@ function Driver(fullname, identity, username, password, authorization) {
     get: () => { return _args.authorization },
     set: (value) => { _args.authorization = value }
   })
+
+  Object.defineProperty(this, 'pse', {
+    get: () => { return _args.pse },
+    set: (value) => { _args.pse = value }
+  })
 }
 
-util.inherits(Driver, events.EventEmitter);
+Driver.prototype.toRegister = function() {
+  const authorization = (
+    moment(this.authorization).format('DD/MM/YYYY')
+  );
 
-Driver.prototype.toSpawn =  function(command='casperjs') {
-  const script = path.join(__dirname, 'external/tercerizacion.js');
-
-  const authorization = moment(this.authorization).format('DD/MM/YYYY');
-
-  const args = [
-    script,
+  const params = [
     this.identity,
     this.username,
     this.password,
-    '20504561292',
+    this.pse,
     authorization
   ];
 
-  const child = cp.spawn(command, args);
+  const child = new Bot(params);
 
-  child.stdout.setEncoding('utf8');
+  child.execute();
 
-  child.stderr.setEncoding('utf8');
+  child.on('data', (mssg) => {
+    console.log(`DATA [${this.fullname}]: \n ${mssg.toString()}`);
+  })
 
-  child.stdout.on('data', (data) => {
-    this.emit('data', data)
-  });
+  child.on('error', (mssg) => {
+    console.log(`ERROR [${this.fullname}]: \n ${mssg.toString()}`);
+  })
 
-  child.stderr.on('data', (data) => {
-    this.emit('error', data);
-  });
-
-  /*child.on('close', (code) => {
-    // NOTE: When stdio streams close
-    if (code === 0) {
-      this.emit('end', 'child terminated (success close)!');
-    } else {
-      this.emit('end', 'child terminated (failure close)!');
-    }
-  });*/
-
-  // NOTE: When process ends
-  child.on('exit', (code) => {
-    if (code === this.SUCCESS_CODE) {
-      this.emit('end', '[' + this.identity + '] Inicio autorización ' + this.authorization);
-    } /*else {
-      this.emit('error', 'Proceso concluido (facaso)!');
-    }*/
-  });
-
-  child.on('error', (err) => {
-    // NOTE: When error occurs
-    this.emit('error', err.message);
-  });
+  child.on('end', (mssg) => {
+    console.log(`END [${this.fullname}]: \n ${mssg.toString()}`);
+  })
 }
-
-Driver.prototype.SUCCESS_CODE = 0;
 
 module.exports = Driver;
