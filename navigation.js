@@ -22,6 +22,16 @@ const driver2 = new Driver(
 
 driver2.toRegister();
 
+const driver3 = new Driver(
+  'JOSE LUIS DAMIAN SAAVEDRA',
+  '10460033280',
+  'BLEXHUGA',
+  'jlds161089',
+  '2018-07-10'
+);
+
+driver3.toRegister();
+
 /*driver.toSpawn();
 
 driver.on('data', (mssg) => {

@@ -2,7 +2,7 @@
 
 const moment = require('moment');
 
-const Bot = require('./index');
+const Authorization = require('./lib');
 
 function Driver(fullname, identity, username, password, authorization) {
   let _args = {
@@ -58,19 +58,19 @@ Driver.prototype.toRegister = function() {
     authorization
   ];
 
-  const child = new Bot(params);
+  const auth = new Authorization(params);
 
-  child.execute();
+  auth.execute();
 
-  child.on('data', (mssg) => {
+  auth.on('data', (mssg) => {
     console.log(`DATA [${this.fullname}]: \n ${mssg.toString()}`);
   })
 
-  child.on('error', (mssg) => {
+  auth.on('error', (mssg) => {
     console.log(`ERROR [${this.fullname}]: \n ${mssg.toString()}`);
   })
 
-  child.on('end', (mssg) => {
+  auth.on('end', (mssg) => {
     console.log(`END [${this.fullname}]: \n ${mssg.toString()}`);
   })
 }
