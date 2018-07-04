@@ -45,7 +45,7 @@ function Driver(fullname, identity, username, password, authorization) {
   })
 }
 
-Driver.prototype.toRegister = function() {
+Driver.prototype.toRegister = function(callback) {
   const authorization = (
     moment(this.authorization).format('DD/MM/YYYY')
   );
@@ -67,10 +67,14 @@ Driver.prototype.toRegister = function() {
   })
 
   auth.on('error', (mssg) => {
+    callback(null, 'failed');
+
     console.log(`ERROR [${this.fullname}]: \n ${mssg.toString()}`);
   })
 
   auth.on('end', (mssg) => {
+    callback('success', null);
+
     console.log(`END [${this.fullname}]: \n ${mssg.toString()}`);
   })
 }
