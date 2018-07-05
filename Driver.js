@@ -70,6 +70,18 @@ function Driver(fullname, identity, username, password, authorization, data) {
 }
 
 Driver.prototype.toRegister = function(callback) {
+  if (String(this.identity).length != 11 || String(this.username).length != 8) {
+    this.state = 'NO ACTIVO';
+
+    this.observation = 'Los datos de acceso son incorrectos';
+
+    this.logs.push(moment().format('YYYY-MM-DD HH:mm:ss') + ' -> ' + this.observation);
+
+    callback(null, true);
+
+    return;
+  }
+
   const authorization = (
     moment(this.authorization).format('DD/MM/YYYY')
   );
