@@ -13,7 +13,7 @@ const register = async function() {
   await objTask.readCsv(csvPath);
 
   objTask.toProcess(() => {
-    objTask.writeCsv();
+    objTask.writeCsv(csvPath);
   });
 }
 

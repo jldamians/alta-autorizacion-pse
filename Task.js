@@ -62,8 +62,8 @@ Task.prototype.toProcess = function(callback) {
   }
 }
 
-Task.prototype.writeCsv = function() {
-  csv.write(this.drivers);
+Task.prototype.writeCsv = function(path) {
+  csv.write(this.drivers, path);
 }
 
 const _process = function(callback) {
@@ -104,6 +104,6 @@ const _process = function(callback) {
   });
 }
 
-Task.prototype.CONCURRENT_TASKS_NUMBER = 8;
+Task.prototype.CONCURRENT_TASKS_NUMBER = 6;
 
 module.exports = Task;
