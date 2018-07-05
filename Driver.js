@@ -4,8 +4,9 @@ const moment = require('moment');
 
 const Authorization = require('./lib');
 
-function Driver(fullname, identity, username, password, authorization) {
+function Driver(fullname, identity, username, password, authorization, data) {
   let _args = {
+    data: data,
     fullname: fullname,
     identity: identity,
     username: username,
@@ -43,6 +44,11 @@ function Driver(fullname, identity, username, password, authorization) {
     get: () => { return _args.pse },
     set: (value) => { _args.pse = value }
   })
+
+  Object.defineProperty(this, 'data', {
+    get: () => { return _args.data },
+    set: (value) => { _args.data = value }
+  })
 }
 
 Driver.prototype.toRegister = function(callback) {
@@ -67,15 +73,15 @@ Driver.prototype.toRegister = function(callback) {
   })
 
   auth.on('error', (mssg) => {
-    callback(null, 'failed');
-
     console.log(`ERROR [${this.fullname}]: \n ${mssg.toString()}`);
+
+    callback(null, 'failed');
   })
 
   auth.on('end', (mssg) => {
-    callback('success', null);
-
     console.log(`END [${this.fullname}]: \n ${mssg.toString()}`);
+
+    callback('success', null);
   })
 }
 

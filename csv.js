@@ -16,7 +16,9 @@ const ROWS_STRUCTURE = [
   'username',
   'password',
   'billing',
-  'accounting'
+  'accounting',
+  'state',
+  'observation'
 ];
 
 

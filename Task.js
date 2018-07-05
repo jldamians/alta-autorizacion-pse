@@ -6,7 +6,7 @@ const Driver = require('./Driver');
 function Task(authorization) {
   let _args = {
     drivers: [],
-    csvContent: [],
+    processed: [],
     authorization: authorization,
     index: 0
   }
@@ -16,9 +16,9 @@ function Task(authorization) {
     set: (value) => { _args.drivers = value }
   })
 
-  Object.defineProperty(this, 'csvContent', {
-    get: () => { return _args.csvContent },
-    set: (value) => { _args.csvContent = value }
+  Object.defineProperty(this, 'processed', {
+    get: () => { return _args.processed },
+    set: (value) => { _args.processed = value }
   })
 
   Object.defineProperty(this, 'authorization', {
@@ -41,6 +41,7 @@ Task.prototype.getCsvInformation = async function(path) {
   csvContent.forEach((uc) => {
     let driver = new Driver();
 
+    driver.data = uc;
     driver.identity = uc.ruc;
     driver.fullname = uc.name;
     driver.username = uc.username;
@@ -51,29 +52,45 @@ Task.prototype.getCsvInformation = async function(path) {
   });
 
   this.drivers = drivers;
-  this.csvContent = csvContent;
 }
 
-Task.prototype.toProcess = function() {
+Task.prototype.toProcess = function(callback) {
   for (var i = 0; i < this.CONCURRENT_TASKS_NUMBER; i++) {
-    _process.call(this);
+    _process.bind(this)(callback);
   }
 }
 
-const _process = function() {
-  let currentDriver = this.drivers[this.index];
+const _process = function(callback) {
+  let driver = this.drivers[this.index];
 
-  if (!currentDriver) {
+  if (!driver) {
+    if (this.processed.length === 0) {
+      callback();
+    }
+
     return;
   }
 
-  this.index = this.index + 1;
+  // NOTE: Agregado el conductor a la cola de control
+  this.processed.push(driver.identity)
 
-  currentDriver.toRegister((data, error) => {
-    _process.call(this);
+  this.index++;
+
+  // NOTE: El callback será ejecutado cuando casperjs indique
+  // lance un error o haya concluido el procesamiento
+  driver.toRegister((data, error) => {
+    // NOTE: Removiendo al conductor de la cola de control
+    let index = this.processed.indexOf(driver.identity);
+
+    if (index !== -1) {
+      this.processed.splice(index, 1)
+    }
+
+    // NOTE: Procesando nuevo conductor
+    _process.bind(this)(callback);
   });
 }
 
-Task.prototype.CONCURRENT_TASKS_NUMBER = 5;
+Task.prototype.CONCURRENT_TASKS_NUMBER = 2;
 
 module.exports = Task;

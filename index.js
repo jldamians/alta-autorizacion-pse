@@ -7,7 +7,9 @@ const register = async function() {
 
   await objTask.getCsvInformation('C:\\Users\\josel\\Desktop\\easy-invoices.csv');
 
-  objTask.toProcess();
+  objTask.toProcess(() => {
+    // TODO: generar nuevo archivo csv
+  });
 }
 
 register();
