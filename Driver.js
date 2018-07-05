@@ -96,7 +96,16 @@ Driver.prototype.toRegister = function(callback) {
     if (message != null && message != '') {
       let information = JSON.parse(message);
 
-      this.state = Number.parseInt(information.code);
+      switch (Number.parseInt(information.code)) {
+        case 1:
+          this.state = 'NO ACTIVO';
+          break;
+        case 2:
+          this.state = 'ACTIVO';
+          break;
+        default:
+          this.state = Number.parseInt(information.code);
+      }
 
       this.observation = information.message;
 
