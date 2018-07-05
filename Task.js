@@ -1,11 +1,9 @@
 'use strict';
 
-const moment = require('moment');
-
 const csv = require('./csv');
 const Driver = require('./Driver');
 
-function Task(authorization=moment().format('YYYY-MM-DD')) {
+function Task(authorization) {
   let _args = {
     drivers: [],
     processed: [],
@@ -49,6 +47,8 @@ Task.prototype.readCsv = async function(path) {
     driver.username = uc.username;
     driver.password = uc.password;
     driver.authorization = this.authorization;
+    driver.state = uc.state || '0'
+    driver.observation = uc.observation || ''
 
     drivers.push(driver);
   });
@@ -69,6 +69,8 @@ Task.prototype.writeCsv = function() {
 const _process = function(callback) {
   let driver = this.drivers[this.index];
 
+  this.index++;
+
   if (!driver) {
     if (this.processed.length === 0) {
       callback();
@@ -77,14 +79,20 @@ const _process = function(callback) {
     return;
   }
 
+  if (driver.state != null && driver.state != '' && driver.state != '0') {
+    _process.bind(this)(callback);
+
+    return;
+  }
+
   // NOTE: Agregado el conductor a la cola de control
   this.processed.push(driver.identity);
-
-  this.index++;
 
   // NOTE: El callback será ejecutado cuando casperjs indique
   // lance un error o haya concluido el procesamiento
   driver.toRegister((data, error) => {
+    console.log(`[${driver.identity}] ${driver.fullname}:\n\n${driver.logs.join('')}\n`);
+
     // NOTE: Removiendo al conductor de la cola de control
     let index = this.processed.indexOf(driver.identity);
 
@@ -92,11 +100,10 @@ const _process = function(callback) {
       this.processed.splice(index, 1);
     }
 
-    // NOTE: Procesando nuevo conductor
     _process.bind(this)(callback);
   });
 }
 
-Task.prototype.CONCURRENT_TASKS_NUMBER = 4;
+Task.prototype.CONCURRENT_TASKS_NUMBER = 8;
 
 module.exports = Task;

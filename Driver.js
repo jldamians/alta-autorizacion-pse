@@ -14,7 +14,8 @@ function Driver(fullname, identity, username, password, authorization, data) {
     authorization: authorization,
     pse: '20504561292',
     state: '',
-    observation: ''
+    observation: '',
+    logs: []
   }
 
   Object.defineProperty(this, 'fullname', {
@@ -61,6 +62,11 @@ function Driver(fullname, identity, username, password, authorization, data) {
     get: () => { return _args.observation },
     set: (value) => { _args.observation = value }
   })
+
+  Object.defineProperty(this, 'logs', {
+    get: () => { return _args.logs },
+    set: (value) => { _args.logs = value }
+  })
 }
 
 Driver.prototype.toRegister = function(callback) {
@@ -81,29 +87,33 @@ Driver.prototype.toRegister = function(callback) {
   auth.execute();
 
   auth.on('data', (mssg) => {
-    console.log(`DATA [${this.fullname}]: \n ${mssg.toString()}`);
+    this.logs.push(moment().format('YYYY-MM-DD HH:mm:ss') + ' -> ' + mssg);
   })
 
   auth.on('error', (mssg) => {
-    let informacion = JSON.parse(mssg.toString());
+    let message = String(mssg).trim();
 
-    this.state = Number.parseInt(informacion.code);
+    if (message != null && message != '') {
+      let information = JSON.parse(message);
 
-    this.observation = informacion.message;
+      this.state = Number.parseInt(information.code);
 
-    console.log(`ERROR [${this.fullname}]: \n ${informacion.message}`);
+      this.observation = information.message;
 
-    callback(null, 'failed');
+      this.logs.push(moment().format('YYYY-MM-DD HH:mm:ss') + ' -> ' + this.observation);
+
+      callback(null, information);
+    }
   })
 
   auth.on('end', (mssg) => {
-    console.log(`END [${this.fullname}]: \n ${mssg.toString()}`);
-
     this.state = 'ACTIVO';
 
-    this.observation = 'Registrado';
+    this.observation = `Inicio de authorización ${this.authorization}`;
 
-    callback('success', null);
+    this.logs.push(moment().format('YYYY-MM-DD HH:mm:ss') + ' -> ' + this.observation);
+
+    callback('Registrado correctamente', null);
   })
 }
 
