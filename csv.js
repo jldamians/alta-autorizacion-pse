@@ -65,7 +65,7 @@ const read = function(path) {
   });
 }
 
-const write = function(data) {
+const write = function(data, path) {
   const workbook = new Excel.Workbook();
 
   const worksheet = workbook.addWorksheet('processed-information');
@@ -97,7 +97,7 @@ const write = function(data) {
     ]);
   });
 
-  workbook.csv.writeFile('C:\\Users\\josel\\Desktop\\easy-invoices-processed.csv');
+  workbook.csv.writeFile(path);
 }
 
 exports.read = read;
