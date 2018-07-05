@@ -1,9 +1,11 @@
 'use strict';
 
+const moment = require('moment');
+
 const csv = require('./csv');
 const Driver = require('./Driver');
 
-function Task(authorization) {
+function Task(authorization=moment().format('YYYY-MM-DD')) {
   let _args = {
     drivers: [],
     processed: [],
