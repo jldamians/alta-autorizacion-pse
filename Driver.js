@@ -12,7 +12,9 @@ function Driver(fullname, identity, username, password, authorization, data) {
     username: username,
     password: password,
     authorization: authorization,
-    pse: '20504561292'
+    pse: '20504561292',
+    state: '',
+    observation: ''
   }
 
   Object.defineProperty(this, 'fullname', {
@@ -49,6 +51,16 @@ function Driver(fullname, identity, username, password, authorization, data) {
     get: () => { return _args.data },
     set: (value) => { _args.data = value }
   })
+
+  Object.defineProperty(this, 'state', {
+    get: () => { return _args.state },
+    set: (value) => { _args.state = value }
+  })
+
+  Object.defineProperty(this, 'observation', {
+    get: () => { return _args.observation },
+    set: (value) => { _args.observation = value }
+  })
 }
 
 Driver.prototype.toRegister = function(callback) {
@@ -73,13 +85,23 @@ Driver.prototype.toRegister = function(callback) {
   })
 
   auth.on('error', (mssg) => {
-    console.log(`ERROR [${this.fullname}]: \n ${mssg.toString()}`);
+    let informacion = JSON.parse(mssg.toString());
+
+    this.state = Number.parseInt(informacion.code);
+
+    this.observation = informacion.message;
+
+    console.log(`ERROR [${this.fullname}]: \n ${informacion.message}`);
 
     callback(null, 'failed');
   })
 
   auth.on('end', (mssg) => {
     console.log(`END [${this.fullname}]: \n ${mssg.toString()}`);
+
+    this.state = 'ACTIVO';
+
+    this.observation = 'Registrado';
 
     callback('success', null);
   })

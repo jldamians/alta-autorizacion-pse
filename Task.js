@@ -32,11 +32,11 @@ function Task(authorization) {
   })
 }
 
-Task.prototype.getCsvInformation = async function(path) {
+Task.prototype.readCsv = async function(path) {
   let drivers = [],
       csvContent = [];
 
-  csvContent = await csv.getContent(path);
+  csvContent = await csv.read(path);
 
   csvContent.forEach((uc) => {
     let driver = new Driver();
@@ -60,6 +60,10 @@ Task.prototype.toProcess = function(callback) {
   }
 }
 
+Task.prototype.writeCsv = function() {
+  csv.write(this.drivers);
+}
+
 const _process = function(callback) {
   let driver = this.drivers[this.index];
 
@@ -72,7 +76,7 @@ const _process = function(callback) {
   }
 
   // NOTE: Agregado el conductor a la cola de control
-  this.processed.push(driver.identity)
+  this.processed.push(driver.identity);
 
   this.index++;
 
@@ -83,7 +87,7 @@ const _process = function(callback) {
     let index = this.processed.indexOf(driver.identity);
 
     if (index !== -1) {
-      this.processed.splice(index, 1)
+      this.processed.splice(index, 1);
     }
 
     // NOTE: Procesando nuevo conductor
@@ -91,6 +95,6 @@ const _process = function(callback) {
   });
 }
 
-Task.prototype.CONCURRENT_TASKS_NUMBER = 2;
+Task.prototype.CONCURRENT_TASKS_NUMBER = 4;
 
 module.exports = Task;
