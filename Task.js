@@ -33,8 +33,7 @@ function Task(authorization) {
 }
 
 Task.prototype.readCsv = async function(path) {
-  let drivers = [],
-      csvContent = [];
+  let csvContent = [];
 
   csvContent = await csv.read(path);
 
@@ -50,10 +49,8 @@ Task.prototype.readCsv = async function(path) {
     driver.state = uc.state || '0'
     driver.observation = uc.observation || ''
 
-    drivers.push(driver);
+    this.drivers.push(driver);
   });
-
-  this.drivers = drivers;
 }
 
 Task.prototype.toProcess = function(callback) {
